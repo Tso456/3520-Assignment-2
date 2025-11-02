@@ -1,0 +1,39 @@
+Assignment:
+
+Goal:
+- Implement two scheduling policies - Round Robin and Fair Mix - and use them to execute tasks from a sample file and then automatically calculate average response time and overhead of context switches for both scheduling policies.
+
+Input:
+- Can be specified in any order
+- Will need to use getopt() function
+- Simulation data will be read from file via input redirection
+- 4 CLAs
+-t 2 (int)
+-- Time slice, specified in seconds
+-i 7000 (int)
+-- Starting task ids
+-o 1 (int)
+-- Overhead of context switches, with the first context to be included when the task runs for the first time
+-f filename
+-- Output file that contains all output data
+
+Output:
+- Output will be written both to CLI and into file specified by user in CLA
+- CLI Output:
+-- Print summary table on simulation end
+-- Order table by ascending with task identifier
+--- Task identifier contains tid, service time, completion time, response time, and wait time for each task
+-- Prints average response time and total overhead time for both scheduling policies and determines which performs better with the current mix of jobs
+
+Input Redirection:
+- First number on each line is arrival time of task
+- Second number on each line is service time of task
+
+Assignment Specifications & Details:
+- Will use linked lists with each task being represented by a struct
+- Can only access struct via pointer to said struct
+- Source file named "sched.c"
+- Submit program as .tar.gz archive
+
+Example User CLA:
+"./sched -i 2000 -o 1 -t 2 -f output.data < in1"
