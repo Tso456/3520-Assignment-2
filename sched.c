@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+struct task* create(int arrival_time, int service_time, struct task* next);
+
 struct task{
     int
         task_id, /* specified on CL via -i x (x is any large integer)*/
@@ -9,12 +11,15 @@ struct task{
         remaining_time,
         completion_time,
         response_time,
-        wait_time;
+        wait_time,
+        arrival_time;
         struct task *next;
 };
 
 int main (int argc, char *argv[]){
     
+    struct task* head = malloc(sizeof(struct task));
+
     int opt;
     int t, i, o; //CLAs
     char* input_file; //Input file user inputs in CLA
@@ -45,9 +50,55 @@ int main (int argc, char *argv[]){
         }
     }
 
+    char ch;
 
+    FILE *fptr = fopen(input_file, "r");
 
+    int file_arrival_time, file_service_time;
 
+    while (fscanf(fptr, "%i %i", &file_arrival_time, &file_service_time) == 2) {
+        struct task* rover = head;
+        while (rover->next != NULL)
+        {
+            rover = rover->next;
+        }
+
+        create(file_arrival_time, file_service_time, rover);
+        
+    }
+    struct task* rover = head;
+    while (rover->next != NULL)
+    {
+        printf("Arrival Time: %i, ", rover->arrival_time);
+        printf("Service Time: %i\n", rover->service_time);
+        rover = rover->next;
+    }
+    rover->next = head; //Complete circular list
+
+    fclose(fptr);
 
     return 0;
+}
+
+//Create new node and link it to linked list
+struct task* create(int arrival_time, int service_time, struct task* current_node)
+{
+    struct task* new_node = (struct task*)malloc(sizeof(struct task));
+    if(new_node == NULL)
+    {
+        printf("Error creating a new node.\n");
+        exit(0);
+    }
+    
+    
+    new_node->service_time = service_time;
+    new_node->arrival_time = arrival_time;
+    new_node->remaining_time = service_time;
+    
+    new_node->completion_time = 0;
+    new_node->response_time = 0;
+    new_node->wait_time = 0;
+    
+    current_node->next = new_node;
+    //return;
 }
