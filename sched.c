@@ -2,8 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-struct task* create_head(int arrival_time, int service_time, struct task* head);
-struct task* create(int arrival_time, int service_time, struct task* next);
+struct task* create_node(int arrival_time, int service_time);
 
 struct task{
     int
@@ -18,8 +17,6 @@ struct task{
 };
 
 int main (int argc, char *argv[]){
-    
-    //struct task* head = (struct task*)malloc(sizeof(struct task));
 
     int opt;
     int t, i, o; //CLAs
@@ -63,7 +60,7 @@ int main (int argc, char *argv[]){
     while (fscanf(fptr, "%i %i", &file_arrival_time, &file_service_time) == 2) {
         if (j == 0){
             j++;
-            head = create_head(file_arrival_time, file_service_time, head);
+            head = create_node(file_arrival_time, file_service_time);
         }
         else {
             struct task* rover = head;
@@ -71,7 +68,7 @@ int main (int argc, char *argv[]){
             {
                 rover = rover->next;
             }
-            create(file_arrival_time, file_service_time, rover);
+            rover->next = create_node(file_arrival_time, file_service_time);
         }
         
     }
@@ -87,23 +84,8 @@ int main (int argc, char *argv[]){
     return 0;
 }
 
-//Creates head node of linked list
-struct task* create_head(int arrival_time, int service_time, struct task* head){
-    head = (struct task*)malloc(sizeof(struct task));
-
-    head->service_time = service_time;
-    head->arrival_time = arrival_time;
-    head->remaining_time = service_time;
-    
-    head->completion_time = 0;
-    head->response_time = 0;
-    head->wait_time = 0;
-    
-    return head;
-}
-
-//Create new node and link it to linked list
-struct task* create(int arrival_time, int service_time, struct task* current_node)
+//Create new node and links appropriate data
+struct task* create_node(int arrival_time, int service_time)
 {
     struct task* new_node = (struct task*)malloc(sizeof(struct task));
     
@@ -115,5 +97,5 @@ struct task* create(int arrival_time, int service_time, struct task* current_nod
     new_node->response_time = 0;
     new_node->wait_time = 0;
     
-    current_node->next = new_node;
+    return new_node;
 }
