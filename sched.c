@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+struct task* create_head(int arrival_time, int service_time, struct task* head);
 struct task* create(int arrival_time, int service_time, struct task* next);
 
 struct task{
@@ -18,7 +19,7 @@ struct task{
 
 int main (int argc, char *argv[]){
     
-    struct task* head = malloc(sizeof(struct task));
+    //struct task* head = (struct task*)malloc(sizeof(struct task));
 
     int opt;
     int t, i, o; //CLAs
@@ -55,22 +56,28 @@ int main (int argc, char *argv[]){
     FILE *fptr = fopen(input_file, "r");
 
     int file_arrival_time, file_service_time;
-
+    
+    //For each line of text of input file, pass in data to new node of linked list
+    int j = 0;
+    struct task* head;
     while (fscanf(fptr, "%i %i", &file_arrival_time, &file_service_time) == 2) {
-        struct task* rover = head;
-        while (rover->next != NULL)
-        {
-            rover = rover->next;
+        if (j == 0){
+            j++;
+            head = create_head(file_arrival_time, file_service_time, head);
         }
-
-        create(file_arrival_time, file_service_time, rover);
+        else {
+            struct task* rover = head;
+            while (rover->next != NULL)
+            {
+                rover = rover->next;
+            }
+            create(file_arrival_time, file_service_time, rover);
+        }
         
     }
     struct task* rover = head;
     while (rover->next != NULL)
     {
-        printf("Arrival Time: %i, ", rover->arrival_time);
-        printf("Service Time: %i\n", rover->service_time);
         rover = rover->next;
     }
     rover->next = head; //Complete circular list
@@ -80,16 +87,25 @@ int main (int argc, char *argv[]){
     return 0;
 }
 
+//Creates head node of linked list
+struct task* create_head(int arrival_time, int service_time, struct task* head){
+    head = (struct task*)malloc(sizeof(struct task));
+
+    head->service_time = service_time;
+    head->arrival_time = arrival_time;
+    head->remaining_time = service_time;
+    
+    head->completion_time = 0;
+    head->response_time = 0;
+    head->wait_time = 0;
+    
+    return head;
+}
+
 //Create new node and link it to linked list
 struct task* create(int arrival_time, int service_time, struct task* current_node)
 {
     struct task* new_node = (struct task*)malloc(sizeof(struct task));
-    if(new_node == NULL)
-    {
-        printf("Error creating a new node.\n");
-        exit(0);
-    }
-    
     
     new_node->service_time = service_time;
     new_node->arrival_time = arrival_time;
@@ -100,5 +116,4 @@ struct task* create(int arrival_time, int service_time, struct task* current_nod
     new_node->wait_time = 0;
     
     current_node->next = new_node;
-    //return;
 }
