@@ -136,9 +136,9 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
 	int overheadRemaining = 0;
 
 	printf("%-5s %-10s %-10s %-10s %s\n", "Time", "CPU", "Remaining", "Service", "Ready Queue");
-        fprintf(fp, "%-5s %-10s %-10s %-10s %s\n", "Time", "CPU", "Remaining", "Service", "Ready Queue");
-        printf("------------------------------------------------------------------\n");
-        fprintf(fp, "------------------------------------------------------------------\n");
+    fprintf(fp, "%-5s %-10s %-10s %-10s %s\n", "Time", "CPU", "Remaining", "Service", "Ready Queue");
+    printf("------------------------------------------------------------------\n");
+    fprintf(fp, "------------------------------------------------------------------\n");
 
 	while (futureTasks != NULL || readyQueue != NULL || cpu != NULL || overheadRemaining > 0) {
 		while (futureTasks != NULL && futureTasks->arrival_time == currentTime) {
@@ -148,20 +148,12 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
 			enqueue(&readyQueue, arrivedTask);
 		}
 		printf("%-5d ", currentTime);
-        	fprintf(fp, "%-5d ", currentTime);
+        fprintf(fp, "%-5d ", currentTime);
         	
 		if (cpu != NULL) {
             		printf("%-10d %-10d %-10d ", cpu->task_id, cpu->remaining_time, cpu->service_time);
             		fprintf(fp, "%-10d %-10d %-10d ", cpu->task_id, cpu->remaining_time, cpu->service_time);
         	} 
-		else if (overheadRemaining > 0) {
-            		printf("%-10s %-10s %-10s ", "OVERHEAD", "--", "--");
-            		fprintf(fp, "%-10s %-10s %-10s ", "OVERHEAD", "--", "--");
-        	} 
-		else {
-            		printf("%-10s %-10s %-10s ", "IDLE", "--", "--");
-            		fprintf(fp, "%-10s %-10s %-10s ", "IDLE", "--", "--");
-        	}
 
         	print_queue(fp, readyQueue);
         	printf("\n");
@@ -216,7 +208,6 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
 	printf("All tasks complete.\n");
 	fprintf(fp, "All tasks complete.\n");
     
-	//print_stats(fp, completedList, *total_overhead, avg_resp_time);
 	free_list(completedList);
 }
 
@@ -248,25 +239,19 @@ struct task* dequeue(struct task **queueHead) {
 
 void print_queue(FILE *fp, struct task *queue) {
     if (queue == NULL) {
-        printf("[empty]");
-        fprintf(fp, "[empty]");
         return;
     }
 
     struct task *current = queue;
-    printf("[");
-    fprintf(fp, "[");
     while (current != NULL) {
-        printf("%d(%d)", current->task_id, current->remaining_time);
-        fprintf(fp, "%d(%d)", current->task_id, current->remaining_time);
+        printf("%d", current->task_id);
+        fprintf(fp, "%d", current->task_id);
         if (current->next != NULL) {
             printf(", ");
             fprintf(fp, ", ");
         }
         current = current->next;
     }
-    printf("]");
-    fprintf(fp, "]");
 }
 
 void free_list(struct task *list) {
