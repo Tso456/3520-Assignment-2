@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+struct task* read_file_return_list(FILE *input_file);
 struct task* create_node(int arrival_time, int service_time);
 
 struct task{
@@ -20,7 +21,7 @@ int main (int argc, char *argv[]){
 
     int opt;
     int t, i, o; //CLAs
-    char* input_file; //Input file user inputs in CLA
+    char* output_file; //Output file to be created and written to
 
     //GetOPt procedure to get CLAs from user
     while((opt = getopt(argc, argv, "t:i:o:f:")) != -1)
@@ -37,7 +38,7 @@ int main (int argc, char *argv[]){
                 o = atoi(optarg);
                 break;
             case 'f':
-                input_file = optarg;
+                output_file = optarg;
                 break;
             case ':':
                 printf("option needs a value\n");
@@ -48,16 +49,25 @@ int main (int argc, char *argv[]){
         }
     }
 
-    char ch;
+    struct task* head = read_file_return_list(stdin);
 
-    FILE *fptr = fopen(input_file, "r");
+    return 0;
+}
+
+/*
+Summary: Reads input file and creates linked list
+Input: Designated input file with information
+Output: head node of circular linked list with list correctly appended to head
+*/
+struct task* read_file_return_list(FILE *input_file){
+    char ch;
 
     int file_arrival_time, file_service_time;
     
     //For each line of text of input file, pass in data to new node of linked list
     int j = 0;
     struct task* head;
-    while (fscanf(fptr, "%i %i", &file_arrival_time, &file_service_time) == 2) {
+    while (fscanf(input_file, "%i %i", &file_arrival_time, &file_service_time) == 2) {
         if (j == 0){
             j++;
             head = create_node(file_arrival_time, file_service_time);
@@ -72,16 +82,16 @@ int main (int argc, char *argv[]){
         }
         
     }
-    struct task* rover = head;
+    /*struct task* rover = head;
     while (rover->next != NULL)
     {
         rover = rover->next;
     }
-    rover->next = head; //Complete circular list
+    rover->next = head; //Complete circular list*/
 
-    fclose(fptr);
+    fclose(input_file);
 
-    return 0;
+    return head;
 }
 
 //Create new node and links appropriate data
