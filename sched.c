@@ -2,8 +2,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-struct task* read_file_return_list(FILE *input_file);
-struct task* create_node(int arrival_time, int service_time);
+struct task* read_file_return_list(FILE *input_file, int task_id);
+struct task* create_node(int arrival_time, int service_time, int current_task_id);
 
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
 void enqueue(struct task **queueHead, struct task *taskToAdd);
@@ -34,7 +34,7 @@ int main (int argc, char *argv[]){
     {
         switch(opt)
         {
-            case 't':
+            case 't': //
                 t = atoi(optarg);
                 break;
             case 'i':
@@ -55,17 +55,19 @@ int main (int argc, char *argv[]){
         }
     }
 
-    struct task* head = read_file_return_list(stdin);
+    struct task* head = read_file_return_list(stdin, i); //Create linked list
+
+    //roundRobin(head, )
 
     return 0;
 }
 
 /*
 Summary: Reads input file and creates linked list
-Input: Designated input file with information
+Input: Designated input file with information and starting Task ID given by user CLA
 Output: head node of circular linked list with list correctly appended to head
 */
-struct task* read_file_return_list(FILE *input_file){
+struct task* read_file_return_list(FILE *input_file, int task_id){
     char ch;
 
     int file_arrival_time, file_service_time;
@@ -76,7 +78,7 @@ struct task* read_file_return_list(FILE *input_file){
     while (fscanf(input_file, "%i %i", &file_arrival_time, &file_service_time) == 2) {
         if (j == 0){
             j++;
-            head = create_node(file_arrival_time, file_service_time);
+            head = create_node(file_arrival_time, file_service_time, task_id);
         }
         else {
             struct task* rover = head;
@@ -84,8 +86,9 @@ struct task* read_file_return_list(FILE *input_file){
             {
                 rover = rover->next;
             }
-            rover->next = create_node(file_arrival_time, file_service_time);
+            rover->next = create_node(file_arrival_time, file_service_time, task_id);
         }
+        task_id++;
         
     }
     /*struct task* rover = head;
@@ -101,7 +104,7 @@ struct task* read_file_return_list(FILE *input_file){
 }
 
 //Create new node and links appropriate data
-struct task* create_node(int arrival_time, int service_time)
+struct task* create_node(int arrival_time, int service_time, int current_task_id)
 {
     struct task* new_node = (struct task*)malloc(sizeof(struct task));
     
@@ -112,6 +115,7 @@ struct task* create_node(int arrival_time, int service_time)
     new_node->completion_time = 0;
     new_node->response_time = 0;
     new_node->wait_time = 0;
+    new_node->task_id = current_task_id;
     
     return new_node;
 }
