@@ -23,67 +23,6 @@ void print_queue(FILE *fp, struct task *queue);
 void free_list(struct task *list);
 
 int main (int argc, char *argv[]){
-    
-    struct task* head = malloc(sizeof(struct task));
-
-    int opt;
-    int t, i, o; //CLAs
-    char* input_file; //Input file user inputs in CLA
-
-    //GetOPt procedure to get CLAs from user
-    while((opt = getopt(argc, argv, "t:i:o:f:")) != -1)
-    {
-        switch(opt)
-        {
-            case 't':
-                t = atoi(optarg);
-                break;
-            case 'i':
-                i = atoi(optarg);
-                break;
-            case 'o':
-                o = atoi(optarg);
-                break;
-            case 'f':
-                input_file = optarg;
-                break;
-            case ':':
-                printf("option needs a value\n");
-                break;
-            case '?':
-                printf("unknown option: %c\n", optopt);
-                break;
-        }
-    }
-
-    char ch;
-
-    FILE *fptr = fopen(input_file, "r");
-
-    int file_arrival_time, file_service_time;
-
-    while (fscanf(fptr, "%i %i", &file_arrival_time, &file_service_time) == 2) {
-        struct task* rover = head;
-        while (rover->next != NULL)
-        {
-            rover = rover->next;
-        }
-
-        create(file_arrival_time, file_service_time, rover);
-        
-    }
-    struct task* rover = head;
-    while (rover->next != NULL)
-    {
-        printf("Arrival Time: %i, ", rover->arrival_time);
-        printf("Service Time: %i\n", rover->service_time);
-        rover = rover->next;
-    }
-    rover->next = head; //Complete circular list
-
-    fclose(fptr);
-
-    return 0;
 }
 
 //Create new node and link it to linked list
