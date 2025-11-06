@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
+struct task* read_file_return_list(FILE *input_file);
 struct task* create_node(int arrival_time, int service_time);
 
 struct task{
@@ -20,7 +21,8 @@ int main (int argc, char *argv[]){
 
     int opt;
     int t, i, o; //CLAs
-    char* input_file; //Input file user inputs in CLA
+    char* output_file; //Output file to be created and written to
+    //char* input_file; //Input file provided by CLA
 
     //GetOPt procedure to get CLAs from user
     while((opt = getopt(argc, argv, "t:i:o:f:")) != -1)
@@ -37,7 +39,7 @@ int main (int argc, char *argv[]){
                 o = atoi(optarg);
                 break;
             case 'f':
-                input_file = optarg;
+                output_file = optarg;
                 break;
             case ':':
                 printf("option needs a value\n");
@@ -48,6 +50,17 @@ int main (int argc, char *argv[]){
         }
     }
 
+    struct task* head = read_file_return_list(stdin);
+
+    return 0;
+}
+
+/*
+Summary: Reads input file and creates linked list
+Input: Designated input file with information
+Output: head node of circular linked list with list correctly appended to head
+*/
+struct task* read_file_return_list(FILE *input_file){
     char ch;
 
     FILE *fptr = fopen(input_file, "r");
@@ -81,7 +94,7 @@ int main (int argc, char *argv[]){
 
     fclose(fptr);
 
-    return 0;
+    return head;
 }
 
 //Create new node and links appropriate data
