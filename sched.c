@@ -34,16 +34,16 @@ int main (int argc, char *argv[]){
     {
         switch(opt)
         {
-            case 't': //
+            case 't': //Time Slice
                 t = atoi(optarg);
                 break;
-            case 'i':
+            case 'i': //Starting Task ID
                 i = atoi(optarg);
                 break;
-            case 'o':
+            case 'o': //Overhead
                 o = atoi(optarg);
                 break;
-            case 'f':
+            case 'f': //Output file
                 output_file = optarg;
                 break;
             case ':':
@@ -57,7 +57,10 @@ int main (int argc, char *argv[]){
 
     struct task* head = read_file_return_list(stdin, i); //Create linked list
 
-    //roundRobin(head, )
+    FILE *fptr = fopen(output_file, "w");
+    double avg_r_time = 0;
+    int t_overhead = 0;
+    roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
 
     return 0;
 }
