@@ -2,8 +2,6 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-struct task* create(int arrival_time, int service_time, struct task* next);
-
 struct task{
     int
         task_id, /* specified on CL via -i x (x is any large integer)*/
@@ -15,6 +13,14 @@ struct task{
         arrival_time;
         struct task *next;
 };
+
+// FUnction Prototypes
+void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
+void enqueue(struct task **queueHead, struct task *taskToAdd);
+struct task* dequeue(struct task **queueHead);
+struct task* create(int arrival_time, int service_time, struct task* next);
+void print_queue(FILE *fp, struct task *queue);
+void free_list(struct task *list);
 
 int main (int argc, char *argv[]){
     
@@ -103,7 +109,7 @@ struct task* create(int arrival_time, int service_time, struct task* current_nod
     //return;
 }
 
-void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double average_response, int *total_overhead) {
+void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
 	int currentTime = 0;
 	*total_overhead = 0;
 	
@@ -226,3 +232,35 @@ struct task* dequeue(struct task **queueHead) {
     return taskToRun;
 }
 
+void print_queue(FILE *fp, struct task *queue) {
+    if (queue == NULL) {
+        printf("[empty]");
+        fprintf(fp, "[empty]");
+        return;
+    }
+
+    struct task *current = queue;
+    printf("[");
+    fprintf(fp, "[");
+    while (current != NULL) {
+        printf("%d(%d)", current->task_id, current->remaining_time);
+        fprintf(fp, "%d(%d)", current->task_id, current->remaining_time);
+        if (current->next != NULL) {
+            printf(", ");
+            fprintf(fp, ", ");
+        }
+        current = current->next;
+    }
+    printf("]");
+    fprintf(fp, "]");
+}
+
+void free_list(struct task *list) {
+    struct task *current = list;
+    struct task *next;
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
+}
