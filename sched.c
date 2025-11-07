@@ -5,6 +5,8 @@
 struct task* read_file_return_list(FILE *input_file, int task_id);
 struct task* create_node(int arrival_time, int service_time, int current_task_id);
 
+void fairmix(struct task *list, char* current_output_file, int time_slice, int time_quantum);
+
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
 void enqueue_tail(struct task **queueHead, struct task *taskToAdd);
 struct task* dequeue(struct task **queueHead);
@@ -62,6 +64,7 @@ int main (int argc, char *argv[]){
     double avg_r_time = 0;
     int t_overhead = 0;
     //roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
+    fairmix(head, output_file, t, o);
 
     return 0;
 }
@@ -123,6 +126,43 @@ struct task* create_node(int arrival_time, int service_time, int current_task_id
     
     return new_node;
 }
+
+
+
+
+void fairmix(struct task *list, char* current_output_file, int time_slice, int time_quantum){
+
+    
+    return 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
