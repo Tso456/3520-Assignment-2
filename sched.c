@@ -5,13 +5,19 @@
 struct task* read_file_return_list(FILE *input_file, int task_id);
 struct task* create_node(int arrival_time, int service_time, int current_task_id);
 
-void fairmix(struct task *list, char* current_output_file, int time_slice, int time_quantum);
+void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead);
+int reverse_max_min(int max_min);
+int is_in_ready_queue(struct task *queue, struct task *node);
+struct task *append_to_ready_queue(struct task *queue, struct task *node);
+struct task *sort_return_queue(struct task *queue, int max_min);
+struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2);
 
-void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
+
+/*void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
 void enqueue_tail(struct task **queueHead, struct task *taskToAdd);
 struct task* dequeue(struct task **queueHead);
 void print_two_queues(FILE *fp, struct task *q1, struct task *q2);
-void free_list(struct task *list);
+void free_list(struct task *list);*/
 
 struct task{
     int
@@ -134,10 +140,11 @@ Summary:
 Input:
 Output:
 */
-void fairmix(struct task *list, char* current_output_file, int time_slice, int time_quantum){
+void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead){
     int time_count = 0; //Counts up for each CPU cycle
     int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
     int is_task_finished = 0;
+    int overhead;
 
     struct task *ready_queue = NULL; //Declare ready queue
 
@@ -161,10 +168,50 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int t
             }
 
 
+            //If the ready queue still has contents in it, decrement value from the head node (which should be the node that needs to be worked on)
             if (ready_queue != NULL){
-                struct task *current_cycle_node;
-                current_cycle_node = sort_return_queue(ready_queue, next_max_min);
+                ready_queue = sort_return_queue(ready_queue, next_max_min);
+
+                if (time_count % time_slice == 0){
+                    overhead = overhead + overhead; //Increases overhead at context switch
+                }
+
+                ready_queue->service_time = ready_queue->remaining_time;
+                ready_queue->remaining_time--;
+                printf("Task ID: %i, Service Time: %i, Remaining Time: ", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
             }
+
+            //If the task has been fulfilled, remove it from the ready queue and move next node to front
+            if (ready_queue->remaining_time <= 0){
+
+                struct task *temp_ready_queue_node = ready_queue->next;
+                
+                rover = list;
+                if (rover->next == NULL){ //Only one node in list so just free it
+                    free(rover);
+                }
+                else{
+                    while (rover->next != ready_queue){
+                        rover = rover->next;
+                    }
+                    struct task *temp_list_node = rover->next;
+                    rover->next = rover->next->next;
+                    free(temp_list_node);
+                }
+                
+
+                free(ready_queue); //Free from ready queue
+                ready_queue = temp_ready_queue_node;
+
+                printf(" (done)");
+                is_task_finished = 1;
+            }
+            else {
+                struct task *temp = ready_queue->next;
+                temp = append_to_ready_queue(temp, ready_queue);
+                ready_queue = temp;
+            }
+            printf("\n");
 
 
 
@@ -389,7 +436,7 @@ struct task *swap_nodes(struct task *list, struct task *node1, struct task *node
 
 
 
-
+/*
 
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
     int currentTime = 0;
@@ -538,3 +585,8 @@ void free_list(struct task *list) {
         current = next;
     }
 }
+    
+*/
+
+
+
