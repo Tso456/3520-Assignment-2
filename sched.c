@@ -226,25 +226,6 @@ Input: Current ready queue (which should not be empty) and max_min defines how t
 Output: The head node of the queue
 */
 struct task *sort_return_queue(struct task *queue, int max_min){
-    struct task *sorted_queue = queue;
-
-    if (max_min == 0){
-        //Sort so that new head node is MIN of list with alternating down the rest of the list
-        //Every other node from start should be smallest (from each new range)
-        //Every other node from second node should be largest (from each new range)
-        while (){
-
-        }
-
-    }
-    else{
-        //Sort so that new head node is MAX of list with alternating down the rest of the list
-    }
-}
-
-//NEED MAX_MIN SO I KNOW IF HEAD SHOULD BE MIN OR MAX THAT IS RETURNED
-//Checks if queue is sorted depending on if head node should be max or min and returns true or false
-int is_queue_sorted(struct task *queue, int max_min){
     int queue_length = 1;
     struct task *rover = queue;
 
@@ -273,6 +254,7 @@ int is_queue_sorted(struct task *queue, int max_min){
         struct task *temp = rover;
         while (rover != NULL){
             if (rover->service_time < min){
+                min = rover->service_time;
                 temp = rover; //Temp should point to node with smallest service time (MIN VALUE)
             }
             rover = rover->next;
@@ -289,7 +271,8 @@ int is_queue_sorted(struct task *queue, int max_min){
         struct task *temp = rover;
         while (rover != NULL){
             if (rover->service_time > max){
-                temp = rover; //Temp should point to node with smallest service time (MAX VALUE)
+                max = rover->service_time;
+                temp = rover; //Temp should point to node with largest service time (MAX VALUE)
             }
             rover = rover->next;
         }
@@ -298,23 +281,49 @@ int is_queue_sorted(struct task *queue, int max_min){
     }
     starting_position++; //Move starting position forward by one since head is now sorted correctly
 
-    for (int i = 0; i < queue_length; i++)
+    //Knowing the list has more than one node, iterates through list and sorts list correctly (ideally)
+    for (int i = starting_position; i < queue_length; i++)
     {
         int j = 0;
-        rover = queue; //Reset rover to head
+        struct task *starting_position_rover = queue;
         //Make sure that sorting starts at new position so it doesn't overwrite already sorted data in array
-        while (j != starting_position){
-            rover = rover->next;
+        while (j != i){
+            starting_position_rover = starting_position_rover->next;
             j++;
         }
 
-        
+        min = starting_position_rover->service_time;
+        max = starting_position_rover->service_time;
+        rover = starting_position_rover;
 
+        if (max_min == 0){
+            struct task *temp = rover;
+            while (rover != NULL){
+                if (rover->service_time < min){
+                    min = rover->service_time;
+                    temp = rover; //Temp should point to node with smallest service time (MIN VALUE)
+                }
+                rover = rover->next;
+            }
+            queue = swap_nodes(queue, starting_position_rover, temp);
+            max_min = reverse_max_min(max_min);
+        }
+        else {
+            struct task *temp = rover;
+            while (rover != NULL){
+                if (rover->service_time > max){
+                    max = rover->service_time;
+                    temp = rover; //Temp should point to node with largest service time (MAX VALUE)
+                }
+                rover = rover->next;
+            }
+            queue = swap_nodes(queue, starting_position_rover, temp);
+            max_min = reverse_max_min(max_min);
+        }
 
     }
-    
 
-
+    return queue; //Return sorted list
 }
 
 //Swaps two given nodes and returns list. Expects node 1 before node 2
