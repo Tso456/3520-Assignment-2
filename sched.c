@@ -129,13 +129,71 @@ struct task* create_node(int arrival_time, int service_time, int current_task_id
 
 
 
-
+/*
+Summary:
+Input:
+Output:
+*/
 void fairmix(struct task *list, char* current_output_file, int time_slice, int time_quantum){
+    int time_count = 0; //Counts up for each CPU cycle
+    int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
+    int is_task_finished = 0;
 
+    struct task *ready_queue = NULL; //Declare ready queue
+
+    while (list != NULL){
+        //If last cycle finished a task, new cycle should reverse max_min
+        if (is_task_finished){
+            next_max_min = reverse_max_min(next_max_min);
+            is_task_finished = 0;
+        }
+        //If modulo returns 0 that means time slice has finished so reverse max_min
+        else if (time_count % time_slice == 0){
+            next_max_min = reverse_max_min(next_max_min);
+        }
+
+        struct task* rover = list;
+        while (rover != NULL)
+        {
+            if (rover->arrival_time -1 == time_count || (rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, rover))){
+                return 0;
+            }
+
+
+
+            rover = rover->next;
+        }
+        
+
+    }
     
     return 0;
 }
 
+//Reverses max_min
+int reverse_max_min(int max_min){
+    if (max_min == 0){
+        max_min = 1;
+    }
+    else{
+        max_min = 0;
+    }
+    return max_min;
+}
+
+//Checks if given node is currently in ready queue and returns 1 if yes and 0 if no
+int is_in_ready_queue(struct task *queue, struct task *node){
+    struct task* rover = queue;
+    while (rover != NULL)
+    {
+        if (rover == node){
+            return 1;
+        }
+
+        rover = rover->next;
+    }
+    return 0;
+}
 
 
 
