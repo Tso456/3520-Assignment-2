@@ -7,7 +7,7 @@ TARGETS = sched
 all: $(TARGETS)
 
 sched: sched.c
-	$(CC) -o sched sched.c $(LDFLAGS)
+	$(CC) -g -o sched sched.c $(LDFLAGS)
 
 .PHONY: clean
 

@@ -33,7 +33,6 @@ struct task{
 };
 
 int main (int argc, char *argv[]){
-
     int opt;
     int t, i, o; //CLAs
     char* output_file; //Output file to be created and written to
@@ -66,13 +65,12 @@ int main (int argc, char *argv[]){
 
     struct task* head = read_file_return_list(stdin, i); //Create linked list
 
-    FILE *fptr = fopen(output_file, "w");
+    //FILE *fptr = fopen(output_file, "w");
     double avg_r_time = 0;
     int t_overhead = 0;
     //roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
     fairmix(head, output_file, t, o);
-
-    return 0;
+    
 }
 
 /*
@@ -270,12 +268,20 @@ Input: Current ready queue (which should not be empty) and max_min defines how t
 Output: The head node of the queue
 */
 struct task *sort_return_queue(struct task *queue, int max_min){
+    
     int queue_length = 1;
     struct task *rover = queue;
 
     //Get count of # nodes in queue
     while (rover->next != NULL){
         queue_length++;
+        rover = rover->next;
+    }
+
+    printf("\nQueue before sorting with max_min of %i: \n", max_min);
+    rover = queue;
+    while (rover != NULL){
+        printf("Task ID: %i, Service Time: %i\n", rover->task_id, rover->service_time);
         rover = rover->next;
     }
 
@@ -305,6 +311,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
         }
 
         queue = swap_nodes(queue, queue, temp);
+        max_min = reverse_max_min(max_min);
     }
     else{ //Sort for head = max of queue
         if (queue->next == NULL){
@@ -322,6 +329,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
         }
 
         queue = swap_nodes(queue, queue, temp);
+        max_min = reverse_max_min(max_min);
     }
     starting_position++; //Move starting position forward by one since head is now sorted correctly
 
@@ -367,6 +375,14 @@ struct task *sort_return_queue(struct task *queue, int max_min){
 
     }
 
+    printf("\nQueue After Sorting: \n");
+    rover = queue;
+    while (rover != NULL){
+        printf("Task ID: %i, Service Time: %i\n", rover->task_id, rover->service_time);
+        rover = rover->next;
+    }
+    printf("\n");
+
     return queue; //Return sorted list
 }
 
@@ -374,18 +390,29 @@ struct task *sort_return_queue(struct task *queue, int max_min){
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2){
     struct task *rover = list;
 
+    if (node1 == node2){ //Don't execute function if same values
+        return list;
+    }
+
     if (node1 == list){ //First node is head of list so special logic required
         
         while (rover->next != node2){ //Move rover to node before node2
             rover = rover->next;
         }
-    
-        rover->next = node2->next; //Point to node after node2
-        node2->next = node1->next; //node2 now points to second node of list
-        node1->next = rover->next; //Head node now points to node after node2
-        rover->next = node1; //Complete node move. Now node2 node is head of queue
 
-        return node2;
+        if (node1->next == node2){
+            node1->next = node2->next;
+            node2->next = node1;
+            return node2;
+        }
+
+        struct task *after2 = node2->next;
+    
+        rover->next = node1;
+        node2->next = node1->next;
+        node1->next = after2;
+
+        return node2; //New head
     }
     else{
         struct task *temp_rover = list;
@@ -396,17 +423,24 @@ struct task *swap_nodes(struct task *list, struct task *node1, struct task *node
         while (rover->next != node2){ //Move rover to node before node2
             rover = rover->next;
         }
-    
-        rover->next = node2->next; //Point to node after node2
-        node2->next = node1->next; //node2 now points to second node of list
-        temp_rover->next = node2; //Node before original node1 now points to node2 instead of node1
-        node1->next = rover->next; //Head node now points to node after node2
-        rover->next = node1; //Complete node move. Now node2 node is head of queue
+
+        if (node1->next == node2){
+            node1->next = node2->next;
+            node2->next = node1;
+            temp_rover->next = node2;
+            return list;
+        }
+
+        struct task *after2 = node2->next;
+
+        temp_rover->next = node2;
+        rover->next = node1;
+        struct task *temp = node1->next;
+        node1->next = after2;
+        node2->next = temp;
 
         return list;
     }
-
-    
 }
 
 
