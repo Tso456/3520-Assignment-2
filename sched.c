@@ -155,8 +155,15 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int t
         struct task* rover = list;
         while (rover != NULL)
         {
+            //If task is due next cycle or has recently been run but isn't in queue, append it to ready queue to be run in the future
             if (rover->arrival_time -1 == time_count || (rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, rover))){
-                return 0;
+                ready_queue = append_to_ready_queue(ready_queue, rover);
+            }
+
+
+            if (ready_queue != NULL){
+                struct task *current_cycle_node;
+                current_cycle_node = sort_return_queue(ready_queue, next_max_min);
             }
 
 
@@ -192,10 +199,64 @@ int is_in_ready_queue(struct task *queue, struct task *node){
 
         rover = rover->next;
     }
-    return 0;
+    return 0; //Returns 0 if couldn't find node in list
 }
 
+//Appends input node to the ready queue and returns the new queue with the new node inserted
+struct task *append_to_ready_queue(struct task *queue, struct task *node){
+    //If queue is empty then make node the head of the list
+    if (queue == NULL){
+        queue = node;
+    }
+    else{
+        struct task *rover = queue;
+        //Goes to end of list and appends node and then returns queue
+        if (rover->next == NULL){
+            rover->next = node;
+            return queue;
+        }
+        rover = rover->next;
+    }
+}
 
+/*
+Summary:Sorts the ready queue and then returns the head node of the queue which is
+ the node that should be run in the current cycle. Also frees the node from the queue as it is being used
+Input: Current ready queue (which should not be empty) and max_min defines how to sort the queue
+Output: The head node of the queue
+*/
+struct task *sort_return_queue(struct task *queue, int max_min){
+    struct task *sorted_queue = queue;
+
+    if (max_min == 0){
+        //Sort so that new head node is MIN of list with alternating down the rest of the list
+        //Every other node from start should be smallest (from each new range)
+        //Every other node from second node should be largest (from each new range)
+        while (){
+
+        }
+
+    }
+    else{
+        //Sort so that new head node is MAX of list with alternating down the rest of the list
+    }
+}
+
+//NEED MAX_MIN SO I KNOW IF HEAD SHOULD BE MIN OR MAX THAT IS RETURNED
+//Checks if queue is sorted depending on if head node should be max or min and returns true or false
+int is_queue_sorted(struct task *queue, int max_min){
+    int i = 1;
+    struct task *rover = queue;
+
+    //Get count of # nodes in queue
+    while (rover->next != NULL){
+        i++;
+        rover = rover->next;
+    }
+
+    int min_array[i];
+    int max_array[i];
+}
 
 
 
