@@ -144,7 +144,6 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     int time_count = 0; //Counts up for each CPU cycle
     int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
     int is_task_finished = 0;
-    int overhead;
 
     struct task *ready_queue = NULL; //Declare ready queue
 
@@ -178,7 +177,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 
                 ready_queue->service_time = ready_queue->remaining_time;
                 ready_queue->remaining_time--;
-                printf("Task ID: %i, Service Time: %i, Remaining Time: ", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
+                printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
             }
 
             //If the task has been fulfilled, remove it from the ready queue and move next node to front
@@ -220,8 +219,6 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         
 
     }
-    
-    return 0;
 }
 
 //Reverses max_min
@@ -294,7 +291,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
     if (max_min == 0){
 
         if (queue->next == NULL){
-            return 1; //List is sorted because it is only one node
+            return queue; //List is sorted because it is only one node
         }
 
         rover = queue;
@@ -311,7 +308,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
     }
     else{ //Sort for head = max of queue
         if (queue->next == NULL){
-            return 1; //List is sorted because it is only one node
+            return queue; //List is sorted because it is only one node
         }
 
         rover = queue;
