@@ -71,7 +71,7 @@ int main (int argc, char *argv[]){
     //FILE *fptr = fopen(output_file, "w");
     double avg_r_time = 0;
     int t_overhead = 0;
-    //roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
+    //roundRobin(round_robin_list, t, o, fptr, &avg_r_time, &t_overhead);
     fairmix(fairmix_list, output_file, t, o);
     
 
@@ -209,7 +209,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 
     struct task *ready_queue = NULL; //Declare ready queue
 
-    while (list != NULL && ready_queue != NULL){ //change to while 1 and then return later?
+    while (list != NULL || ready_queue != NULL){ //change to while 1 and then return later?
         printf("TIME: %i\n", time_count);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
@@ -232,7 +232,10 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             if ((is_task_finished || current_cycle % time_slice == 0) && (!is_in_ready_queue(ready_queue, list_rover) && (list_rover->arrival_time <= time_count))){
                 current_cycle = 0;
                 //Delinks node from old list and saves reference
-                if (rover == list_rover){
+                if (rover->next == NULL){
+                    break;
+                }
+                else if (rover == list_rover){
                     list = list_rover->next;
                 }
                 else{
@@ -245,6 +248,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                 printf("\nAppending: %i\n", list_rover->service_time);
                 ready_queue = append_to_ready_queue(NULL, ready_queue, list_rover);
                 rover = list;
+                printf("yep: %i\n", rover->service_time);
             }
             else{
                 rover = rover->next;
@@ -330,20 +334,6 @@ int is_in_ready_queue(struct task *queue, struct task *node){
 //Appends input node to the ready queue and returns the new queue with the new node inserted
 struct task *append_to_ready_queue(struct task *list, struct task *queue, struct task *node){
     struct task *rover;
-    /*if (list != NULL){
-        rover = list;
-        //Delinks node from old list and saves reference
-        if (rover == node){
-            list = node->next;
-        }
-        else{
-            while (rover->next != node){
-                rover = rover->next;
-            }
-            node = rover->next;
-            rover->next = rover->next->next;
-        }
-    }*/
 
     node->next = NULL;
     //If queue is empty then make node the head of the list
@@ -383,9 +373,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
         printf("Task ID: %i, Service Time: %i\n", rover->task_id, rover->service_time);
         rover = rover->next;
     }
-
-    //int min_array[queue_length];
-    //int max_array[queue_length];
+    
     int sorted_array[queue_length];
 
     int min = queue->service_time;
@@ -485,6 +473,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
     return queue; //Return sorted list
 }
 
+
 //Swaps two given nodes and returns list. Expects node 1 before node 2
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2){
     struct task *rover = list;
@@ -541,8 +530,6 @@ struct task *swap_nodes(struct task *list, struct task *node1, struct task *node
         return list;
     }
 }
-
-
 
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
     int currentTime = 0;
