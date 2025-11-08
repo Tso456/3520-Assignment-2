@@ -6,6 +6,8 @@ struct task* read_file_return_list(FILE *input_file, int task_id);
 struct task* create_node(int arrival_time, int service_time, int current_task_id);
 
 void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead);
+struct task *duplicate_list(struct task *list);
+struct task *clone_node(struct task *src);
 int reverse_max_min(int max_min);
 int is_in_ready_queue(struct task *queue, struct task *node);
 struct task *append_to_ready_queue(struct task *queue, struct task *node);
@@ -63,15 +65,64 @@ int main (int argc, char *argv[]){
         }
     }
 
-    struct task* head = read_file_return_list(stdin, i); //Create linked list
+    struct task *head = read_file_return_list(stdin, i); //Create linked list
+    //struct task *round_robin_list = duplicate_list(head);
+    struct task *fairmix_list = duplicate_list(head);
 
     //FILE *fptr = fopen(output_file, "w");
     double avg_r_time = 0;
     int t_overhead = 0;
     //roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
-    fairmix(head, output_file, t, o);
+    fairmix(fairmix_list, output_file, t, o);
     
 }
+
+//Duplicates linked list so original list doesn't accidentally get freed between algorithms
+struct task *duplicate_list(struct task *list)
+    {
+        //empty list fallback
+        if (list == NULL) {
+            return NULL;
+        }
+
+        // create the head node, keeping it for later return
+        struct task *head_node = (struct task*)malloc(sizeof(struct task));
+        head_node->arrival_time = list->arrival_time;
+        head_node->completion_time = list->completion_time;
+        head_node->has_run = list->has_run;
+        head_node->next = list->next;
+        head_node->remaining_time = list->remaining_time;
+        head_node->response_time = list->response_time;
+        head_node->service_time = list->service_time;
+        head_node->task_id = list->task_id;
+        head_node->wait_time = list->wait_time;
+
+        // the 'temp' pointer points to the current "last" node in the new list
+        struct task *temp = head_node;
+
+        list = list->next;
+        while (list != NULL)
+        {
+            struct task *new_node = (struct task*)malloc(sizeof(struct task));
+            new_node->arrival_time = list->arrival_time;
+            new_node->completion_time = list->completion_time;
+            new_node->has_run = list->has_run;
+            new_node->next = list->next;
+            new_node->remaining_time = list->remaining_time;
+            new_node->response_time = list->response_time;
+            new_node->service_time = list->service_time;
+            new_node->task_id = list->task_id;
+            new_node->wait_time = list->wait_time;
+
+            // modify the Next pointer of the last node to point to the new last node
+            temp->next = new_node;
+            temp = new_node;
+            list = list->next;
+        }
+
+        return head_node;
+
+    }
 
 /*
 Summary: Reads input file and creates linked list
@@ -127,6 +178,8 @@ struct task* create_node(int arrival_time, int service_time, int current_task_id
     new_node->response_time = 0;
     new_node->wait_time = 0;
     new_node->task_id = current_task_id;
+
+    new_node->next = NULL;
     
     return new_node;
 }
@@ -142,81 +195,95 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     int time_count = 0; //Counts up for each CPU cycle
     int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
     int is_task_finished = 0;
+    int current_overhead_value = 0;
+    int task_run_on_current_cycle = 0;
 
     struct task *ready_queue = NULL; //Declare ready queue
 
     while (list != NULL){
+        printf("TIME: %i\n", time_count);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
             next_max_min = reverse_max_min(next_max_min);
             is_task_finished = 0;
         }
         //If modulo returns 0 that means time slice has finished so reverse max_min
-        else if (time_count % time_slice == 0){
+        else if (time_count != 0 && time_count % time_slice == 0){
             next_max_min = reverse_max_min(next_max_min);
         }
 
-        struct task* rover = list;
-        while (rover != NULL)
+        struct task* list_rover = list;
+        task_run_on_current_cycle = 0;
+        while (list_rover != NULL && !task_run_on_current_cycle)
         {
+            struct task* rover = list_rover;
             //If task is due next cycle or has recently been run but isn't in queue, append it to ready queue to be run in the future
-            if (rover->arrival_time -1 == time_count || (rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, rover))){
-                ready_queue = append_to_ready_queue(ready_queue, rover);
+            if ((rover->arrival_time -1 == time_count && !is_in_ready_queue(ready_queue, rover)) || (rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, rover))){
+                struct task *copy = clone_node(rover);
+                ready_queue = append_to_ready_queue(ready_queue, copy);
             }
 
 
             //If the ready queue still has contents in it, decrement value from the head node (which should be the node that needs to be worked on)
             if (ready_queue != NULL){
+
                 ready_queue = sort_return_queue(ready_queue, next_max_min);
 
                 if (time_count % time_slice == 0){
-                    overhead = overhead + overhead; //Increases overhead at context switch
+                    current_overhead_value = current_overhead_value + overhead; //Increases overhead at context switch
                 }
 
                 ready_queue->service_time = ready_queue->remaining_time;
                 ready_queue->remaining_time--;
+                task_run_on_current_cycle = 1;
                 printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
-            }
 
-            //If the task has been fulfilled, remove it from the ready queue and move next node to front
-            if (ready_queue->remaining_time <= 0){
+                //If the task has been fulfilled, remove it from the ready queue and move next node to front
+                if (ready_queue->remaining_time <= 0){
 
-                struct task *temp_ready_queue_node = ready_queue->next;
-                
-                rover = list;
-                if (rover->next == NULL){ //Only one node in list so just free it
-                    free(rover);
-                }
-                else{
-                    while (rover->next != ready_queue){
-                        rover = rover->next;
+                    struct task *temp_ready_queue_node = ready_queue->next;
+                    
+                    struct task *temp_list_rover = list;
+                    if (temp_list_rover->next == NULL){ //Only one node in list so just free it
+                        free(temp_list_rover);
                     }
-                    struct task *temp_list_node = rover->next;
-                    rover->next = rover->next->next;
-                    free(temp_list_node);
+                    else{
+                        while (temp_list_rover->next != ready_queue){
+                            temp_list_rover = temp_list_rover->next;
+                        }
+                        struct task *temp_list_node = temp_list_rover->next;
+                        temp_list_rover->next = temp_list_rover->next->next;
+                        free(temp_list_node);
+                    }
+                    
+                    ready_queue = temp_ready_queue_node;
+
+                    printf(" (done)");
+                    is_task_finished = 1;
                 }
-                
-
-                free(ready_queue); //Free from ready queue
-                ready_queue = temp_ready_queue_node;
-
-                printf(" (done)");
-                is_task_finished = 1;
+                else {
+                    struct task *temp = ready_queue;
+                    ready_queue = ready_queue->next;
+                    ready_queue = append_to_ready_queue(ready_queue, temp);
+                }
+                printf("\n");
             }
-            else {
-                struct task *temp = ready_queue->next;
-                temp = append_to_ready_queue(temp, ready_queue);
-                ready_queue = temp;
-            }
-            printf("\n");
 
 
-
-            rover = rover->next;
+            
+            list_rover = list_rover->next;
         }
         
-
+        time_count++;
     }
+}
+
+//Clones node
+struct task *clone_node(struct task *src) {
+    struct task *new_node = malloc(sizeof(struct task));
+    *new_node = *src;
+    new_node->next = NULL;
+    return new_node;
 }
 
 //Reverses max_min
@@ -246,19 +313,20 @@ int is_in_ready_queue(struct task *queue, struct task *node){
 
 //Appends input node to the ready queue and returns the new queue with the new node inserted
 struct task *append_to_ready_queue(struct task *queue, struct task *node){
+    node->next = NULL;
+    
     //If queue is empty then make node the head of the list
     if (queue == NULL){
         queue = node;
     }
     else{
         struct task *rover = queue;
-        //Goes to end of list and appends node and then returns queue
-        if (rover->next == NULL){
-            rover->next = node;
-            return queue;
+        while (rover->next != NULL){
+            rover = rover->next;
         }
-        rover = rover->next;
+        rover->next = node;
     }
+    return queue;
 }
 
 /*
