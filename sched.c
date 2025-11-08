@@ -14,11 +14,11 @@ struct task *sort_return_queue(struct task *queue, int max_min);
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2);
 
 
-/*void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
+void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
 void enqueue_tail(struct task **queueHead, struct task *taskToAdd);
 struct task* dequeue(struct task **queueHead);
 void print_two_queues(FILE *fp, struct task *q1, struct task *q2);
-void free_list(struct task *list);*/
+void free_list(struct task *list);
 
 struct task{
     int
@@ -544,30 +544,6 @@ struct task *swap_nodes(struct task *list, struct task *node1, struct task *node
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-/*
-
 void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
     int currentTime = 0;
     *total_overhead = 0;
@@ -715,8 +691,3 @@ void free_list(struct task *list) {
         current = next;
     }
 }
-    
-*/
-
-
-
