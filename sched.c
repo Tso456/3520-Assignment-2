@@ -201,6 +201,7 @@ Output:
 */
 void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead){
     int time_count = 0; //Counts up for each CPU cycle
+    int current_cycle = 1;
     int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
     int is_task_finished = 0;
     int current_overhead_value = 0;
@@ -208,15 +209,17 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 
     struct task *ready_queue = NULL; //Declare ready queue
 
-    while (list != NULL){ //change to while 1 and then return later?
+    while (list != NULL && ready_queue != NULL){ //change to while 1 and then return later?
         printf("TIME: %i\n", time_count);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
+            current_cycle = 0;
             next_max_min = reverse_max_min(next_max_min);
             is_task_finished = 0;
         }
         //If modulo returns 0 that means time slice has finished so reverse max_min
-        else if (time_count != 0 && time_count % time_slice == 0){
+        else if (time_count != 0 && current_cycle % time_slice == 0){
+            current_cycle = 0;
             next_max_min = reverse_max_min(next_max_min);
         }
 
@@ -226,8 +229,8 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         while (rover != NULL)
         {
             //If task is due next cycle or has recently been run but isn't in queue, append it to ready queue to be run in the future
-            if ((list_rover->arrival_time -1 == time_count && !is_in_ready_queue(ready_queue, list_rover)) || (list_rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, list_rover))){
-
+            if ((is_task_finished || current_cycle % time_slice == 0) && (!is_in_ready_queue(ready_queue, list_rover) && (list_rover->arrival_time <= time_count))){
+                current_cycle = 0;
                 //Delinks node from old list and saves reference
                 if (rover == list_rover){
                     list = list_rover->next;
@@ -253,12 +256,8 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         if (ready_queue != NULL && !task_run_on_current_cycle){
 
             ready_queue = sort_return_queue(ready_queue, next_max_min);
-            //If it is too early to run the node then ignore the loop
-            if (time_count > ready_queue->arrival_time){
-                break;
-            }
 
-            if (time_count % time_slice == 0){
+            if (current_cycle % time_slice == 0){
                 current_overhead_value = current_overhead_value + overhead; //Increases overhead at context switch
             }
 
@@ -299,6 +298,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         }
         
         time_count++;
+        current_cycle++;
     }
 }
 
