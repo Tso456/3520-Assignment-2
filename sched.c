@@ -273,8 +273,22 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             //If the task has been fulfilled, remove it from the ready queue and move next node to front
             if (ready_queue->remaining_time <= 0){
 
-                struct task *temp_ready_queue_node = ready_queue->next;
+                struct task *temp_ready_queue_node;
+                if (ready_queue->next == NULL){
+                    free(ready_queue);
+                }
+                else{
+                    temp_ready_queue_node = ready_queue->next;
+                    free(ready_queue);
+                    ready_queue = temp_ready_queue_node;
+                }
                 
+                //Everything has been finished
+                if (list == NULL && ready_queue == NULL){
+
+                }
+                
+                /*
                 struct task *temp_list_rover = list;
                 if (temp_list_rover->next == NULL){ //Only one node in list so just free it
                     free(temp_list_rover);
@@ -286,7 +300,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                     struct task *temp_list_node = temp_list_rover->next;
                     temp_list_rover->next = temp_list_rover->next->next;
                     free(temp_list_node);
-                }
+                }*/
                 
                 ready_queue = temp_ready_queue_node;
 
