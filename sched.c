@@ -297,10 +297,6 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             }
             printf("\n");
         }
-
-
-            
-            //list_rover = list_rover->next;
         
         time_count++;
     }
