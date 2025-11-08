@@ -7,10 +7,9 @@ struct task* create_node(int arrival_time, int service_time, int current_task_id
 
 void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead);
 struct task *duplicate_list(struct task *list);
-struct task *clone_node(struct task *src);
 int reverse_max_min(int max_min);
 int is_in_ready_queue(struct task *queue, struct task *node);
-struct task *append_to_ready_queue(struct task *queue, struct task *node);
+struct task *append_to_ready_queue(struct task *list, struct task *queue, struct task *node);
 struct task *sort_return_queue(struct task *queue, int max_min);
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2);
 
@@ -75,6 +74,15 @@ int main (int argc, char *argv[]){
     //roundRobin(head, t, o, fptr, &avg_r_time, &t_overhead);
     fairmix(fairmix_list, output_file, t, o);
     
+
+    struct task *trailing = NULL;
+    struct task *current = head;
+    //Free original list
+    while (current != NULL){
+        trailing = current;
+        current = current->next;
+        free(trailing);
+    }
 }
 
 //Duplicates linked list so original list doesn't accidentally get freed between algorithms
@@ -200,7 +208,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 
     struct task *ready_queue = NULL; //Declare ready queue
 
-    while (list != NULL){
+    while (list != NULL){ //change to while 1 and then return later?
         printf("TIME: %i\n", time_count);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
@@ -214,76 +222,88 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 
         struct task* list_rover = list;
         task_run_on_current_cycle = 0;
-        while (list_rover != NULL && !task_run_on_current_cycle)
+        struct task *rover = list_rover;
+        while (rover != NULL)
         {
-            struct task* rover = list_rover;
             //If task is due next cycle or has recently been run but isn't in queue, append it to ready queue to be run in the future
-            if ((rover->arrival_time -1 == time_count && !is_in_ready_queue(ready_queue, rover)) || (rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, rover))){
-                struct task *copy = clone_node(rover);
-                ready_queue = append_to_ready_queue(ready_queue, copy);
+            if ((list_rover->arrival_time -1 == time_count && !is_in_ready_queue(ready_queue, list_rover)) || (list_rover->arrival_time <= time_count && !is_in_ready_queue(ready_queue, list_rover))){
+
+                //Delinks node from old list and saves reference
+                if (rover == list_rover){
+                    list = list_rover->next;
+                }
+                else{
+                    while (rover->next != list_rover){
+                        rover = rover->next;
+                    }
+                    rover->next = list_rover->next;
+                }
+
+                printf("\nAppending: %i\n", list_rover->service_time);
+                ready_queue = append_to_ready_queue(NULL, ready_queue, list_rover);
+                rover = list;
+            }
+            else{
+                rover = rover->next;
+            }
+        }
+
+
+        //If the ready queue still has contents in it, decrement value from the head node (which should be the node that needs to be worked on)
+        if (ready_queue != NULL && !task_run_on_current_cycle){
+
+            ready_queue = sort_return_queue(ready_queue, next_max_min);
+            //If it is too early to run the node then ignore the loop
+            if (time_count > ready_queue->arrival_time){
+                break;
             }
 
-
-            //If the ready queue still has contents in it, decrement value from the head node (which should be the node that needs to be worked on)
-            if (ready_queue != NULL){
-
-                ready_queue = sort_return_queue(ready_queue, next_max_min);
-
-                if (time_count % time_slice == 0){
-                    current_overhead_value = current_overhead_value + overhead; //Increases overhead at context switch
-                }
-
-                ready_queue->service_time = ready_queue->remaining_time;
-                ready_queue->remaining_time--;
-                task_run_on_current_cycle = 1;
-                printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
-
-                //If the task has been fulfilled, remove it from the ready queue and move next node to front
-                if (ready_queue->remaining_time <= 0){
-
-                    struct task *temp_ready_queue_node = ready_queue->next;
-                    
-                    struct task *temp_list_rover = list;
-                    if (temp_list_rover->next == NULL){ //Only one node in list so just free it
-                        free(temp_list_rover);
-                    }
-                    else{
-                        while (temp_list_rover->next != ready_queue){
-                            temp_list_rover = temp_list_rover->next;
-                        }
-                        struct task *temp_list_node = temp_list_rover->next;
-                        temp_list_rover->next = temp_list_rover->next->next;
-                        free(temp_list_node);
-                    }
-                    
-                    ready_queue = temp_ready_queue_node;
-
-                    printf(" (done)");
-                    is_task_finished = 1;
-                }
-                else {
-                    struct task *temp = ready_queue;
-                    ready_queue = ready_queue->next;
-                    ready_queue = append_to_ready_queue(ready_queue, temp);
-                }
-                printf("\n");
+            if (time_count % time_slice == 0){
+                current_overhead_value = current_overhead_value + overhead; //Increases overhead at context switch
             }
+
+            ready_queue->service_time = ready_queue->remaining_time;
+            ready_queue->remaining_time--;
+            task_run_on_current_cycle = 1;
+            printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
+
+            //If the task has been fulfilled, remove it from the ready queue and move next node to front
+            if (ready_queue->remaining_time <= 0){
+
+                struct task *temp_ready_queue_node = ready_queue->next;
+                
+                struct task *temp_list_rover = list;
+                if (temp_list_rover->next == NULL){ //Only one node in list so just free it
+                    free(temp_list_rover);
+                }
+                else{
+                    while (temp_list_rover->next != ready_queue){
+                        temp_list_rover = temp_list_rover->next;
+                    }
+                    struct task *temp_list_node = temp_list_rover->next;
+                    temp_list_rover->next = temp_list_rover->next->next;
+                    free(temp_list_node);
+                }
+                
+                ready_queue = temp_ready_queue_node;
+
+                printf(" (done)");
+                is_task_finished = 1;
+            }
+            else {
+                struct task *temp = ready_queue;
+                ready_queue = ready_queue->next;
+                ready_queue = append_to_ready_queue(NULL, ready_queue, temp);
+            }
+            printf("\n");
+        }
 
 
             
-            list_rover = list_rover->next;
-        }
+            //list_rover = list_rover->next;
         
         time_count++;
     }
-}
-
-//Clones node
-struct task *clone_node(struct task *src) {
-    struct task *new_node = malloc(sizeof(struct task));
-    *new_node = *src;
-    new_node->next = NULL;
-    return new_node;
 }
 
 //Reverses max_min
@@ -312,15 +332,30 @@ int is_in_ready_queue(struct task *queue, struct task *node){
 }
 
 //Appends input node to the ready queue and returns the new queue with the new node inserted
-struct task *append_to_ready_queue(struct task *queue, struct task *node){
+struct task *append_to_ready_queue(struct task *list, struct task *queue, struct task *node){
+    struct task *rover;
+    /*if (list != NULL){
+        rover = list;
+        //Delinks node from old list and saves reference
+        if (rover == node){
+            list = node->next;
+        }
+        else{
+            while (rover->next != node){
+                rover = rover->next;
+            }
+            node = rover->next;
+            rover->next = rover->next->next;
+        }
+    }*/
+
     node->next = NULL;
-    
     //If queue is empty then make node the head of the list
     if (queue == NULL){
         queue = node;
     }
     else{
-        struct task *rover = queue;
+        rover = queue;
         while (rover->next != NULL){
             rover = rover->next;
         }
