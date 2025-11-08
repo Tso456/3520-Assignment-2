@@ -206,10 +206,11 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     int is_task_finished = 0;
     int current_overhead_value = 0;
     int task_run_on_current_cycle = 0;
+    int all_tasks_finished = 0;
 
     struct task *ready_queue = NULL; //Declare ready queue
 
-    while (list != NULL || ready_queue != NULL){ //change to while 1 and then return later?
+    while (all_tasks_finished == 0){ //change to while 1 and then return later?
         printf("TIME: %i\n", time_count);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
@@ -248,7 +249,6 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                 printf("\nAppending: %i\n", list_rover->service_time);
                 ready_queue = append_to_ready_queue(NULL, ready_queue, list_rover);
                 rover = list;
-                printf("yep: %i\n", rover->service_time);
             }
             else{
                 rover = rover->next;
@@ -274,33 +274,15 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             if (ready_queue->remaining_time <= 0){
 
                 struct task *temp_ready_queue_node;
-                if (ready_queue->next == NULL){
+                if (ready_queue->next == NULL){ //In charge of last node in ready queue, freeing it, and making sure this dumb algorithm doesn't run anymore
                     free(ready_queue);
+                    all_tasks_finished = 1;
                 }
                 else{
                     temp_ready_queue_node = ready_queue->next;
                     free(ready_queue);
                     ready_queue = temp_ready_queue_node;
                 }
-                
-                //Everything has been finished
-                if (list == NULL && ready_queue == NULL){
-
-                }
-                
-                /*
-                struct task *temp_list_rover = list;
-                if (temp_list_rover->next == NULL){ //Only one node in list so just free it
-                    free(temp_list_rover);
-                }
-                else{
-                    while (temp_list_rover->next != ready_queue){
-                        temp_list_rover = temp_list_rover->next;
-                    }
-                    struct task *temp_list_node = temp_list_rover->next;
-                    temp_list_rover->next = temp_list_rover->next->next;
-                    free(temp_list_node);
-                }*/
                 
                 ready_queue = temp_ready_queue_node;
 
