@@ -9,7 +9,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
 struct task *duplicate_list(struct task *list);
 int reverse_max_min(int max_min);
 int is_in_ready_queue(struct task *queue, struct task *node);
-struct task *append_to_ready_queue(struct task *list, struct task *queue, struct task *node);
+struct task *append_to_ready_queue(struct task *queue, struct task *node);
 struct task *sort_return_queue(struct task *queue, int max_min);
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2);
 
@@ -161,12 +161,6 @@ struct task* read_file_return_list(FILE *input_file, int task_id){
         task_id++;
         
     }
-    /*struct task* rover = head;
-    while (rover->next != NULL)
-    {
-        rover = rover->next;
-    }
-    rover->next = head; //Complete circular list*/
 
     fclose(input_file);
 
@@ -208,10 +202,23 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     int task_run_on_current_cycle = 0;
     int all_tasks_finished = 0;
 
+    FILE *fp = NULL;
+    fp = fopen(current_output_file, "w");
+
+    // Match project/RR header/columns; no other FairMix prints
+    printf("Fairmix scheduling results\n\n");
+    fprintf(fp, "Fairmix scheduling results\n\n");
+    printf("%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
+    fprintf(fp, "%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
+    printf("---------------------------------------------------------------\n");
+    fprintf(fp, "---------------------------------------------------------------\n");
+
     struct task *ready_queue = NULL; //Declare ready queue
 
     while (all_tasks_finished == 0){ //change to while 1 and then return later?
-        printf("TIME: %i\n", time_count);
+        printf("%-5d", time_count); //Print time count
+        fprintf(fp, "%-5d", time_count);
+        //printf("BEFORE %i...", ready_queue->task_id);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
             current_cycle = 0;
@@ -224,36 +231,37 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             next_max_min = reverse_max_min(next_max_min);
         }
 
-        struct task* list_rover = list;
         task_run_on_current_cycle = 0;
-        struct task *rover = list_rover;
-        while (rover != NULL)
-        {
-            //If task is due next cycle or has recently been run but isn't in queue, append it to ready queue to be run in the future
-            if ((is_task_finished || current_cycle % time_slice == 0) && (!is_in_ready_queue(ready_queue, list_rover) && (list_rover->arrival_time <= time_count))){
-                current_cycle = 0;
-                //Delinks node from old list and saves reference
-                if (rover->next == NULL){
-                    break;
-                }
-                else if (rover == list_rover){
-                    list = list_rover->next;
-                }
-                else{
-                    while (rover->next != list_rover){
-                        rover = rover->next;
-                    }
-                    rover->next = list_rover->next;
+        struct task *prev = NULL;
+        struct task *curr = list;
+
+        while (curr != NULL) {
+            struct task *next = curr->next; //store next in advance
+            if ((is_task_finished || current_cycle % time_slice == 0 || curr->next == NULL) && (!is_in_ready_queue(ready_queue, curr) && (curr->arrival_time <= time_count)))
+            {
+                if (prev == NULL) {
+                    list = next;  //removing head
+                } else {
+                    prev->next = next;
                 }
 
-                printf("\nAppending: %i\n", list_rover->service_time);
-                ready_queue = append_to_ready_queue(NULL, ready_queue, list_rover);
-                rover = list;
+                //detach node before appending
+                curr->next = NULL;
+
+                //append to ready queue
+                ready_queue = append_to_ready_queue(ready_queue, curr);
+
+                //reset cycle counter
+                current_cycle = 0;
+            } 
+            else {
+                //only advance prev if we didn't remove the node
+                prev = curr;
             }
-            else{
-                rover = rover->next;
-            }
+
+            curr = next; //move forward in the list
         }
+
 
 
         //If the ready queue still has contents in it, decrement value from the head node (which should be the node that needs to be worked on)
@@ -268,7 +276,10 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             ready_queue->service_time = ready_queue->remaining_time;
             ready_queue->remaining_time--;
             task_run_on_current_cycle = 1;
-            printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
+
+            printf(" %-6d %-12d %-1d ", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
+            fprintf(fp, " %-6d %-12d %-1d ", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
+            //printf("Task ID: %i, Service Time: %i, Remaining Time: %i", ready_queue->task_id, ready_queue->service_time, ready_queue->remaining_time);
 
             //If the task has been fulfilled, remove it from the ready queue and move next node to front
             if (ready_queue->remaining_time <= 0){
@@ -276,6 +287,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                 struct task *temp_ready_queue_node;
                 if (ready_queue->next == NULL){ //In charge of last node in ready queue, freeing it, and making sure this dumb algorithm doesn't run anymore
                     free(ready_queue);
+                    ready_queue = NULL;
                     all_tasks_finished = 1;
                 }
                 else{
@@ -283,23 +295,95 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                     free(ready_queue);
                     ready_queue = temp_ready_queue_node;
                 }
-                
-                ready_queue = temp_ready_queue_node;
+                //ready_queue = temp_ready_queue_node;
 
-                printf(" (done)");
+                printf("%s ", "(done)");
+                fprintf(fp, "%s ", "(done)");
                 is_task_finished = 1;
             }
             else {
                 struct task *temp = ready_queue;
                 ready_queue = ready_queue->next;
-                ready_queue = append_to_ready_queue(NULL, ready_queue, temp);
+                ready_queue = append_to_ready_queue(ready_queue, temp);
             }
-            printf("\n");
         }
+
+        int i = 0;
+        int printed = 0;
+        curr = list;
+        while (curr != NULL) {
+            struct task *next = curr->next; //store next in advance
+            if (is_task_finished){
+
+            }
+            
+            if (curr->arrival_time - 1 == time_count){
+                if (time_count == 0){
+                    break;
+                }
+                else{
+                    printed = 1;
+                    if (i == 0 && is_task_finished){
+                        printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else if (i == 0){
+                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else{
+                        printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                }
+                i++;
+            }
+            curr = next; //move forward in the list
+        }
+        curr = ready_queue;
+        i = 0;
+        while (curr != NULL) {
+            struct task *next = curr->next; //store next in advance
+            if ((current_cycle % time_slice != 0)){ //If task finished and at last node of head (last node to be run)
+                if (next != NULL){
+                    if (printed){
+                        printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else if (i == 0 && is_task_finished){
+                        printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else if (i == 0){
+                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);   
+                    }
+                    else{
+                        printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                }
+            }
+            else if (is_task_finished || current_cycle % time_slice == 0){
+                if (next != NULL){
+                    if (printed){
+                        printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else if (i == 0 && is_task_finished){
+                        printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                    else if (i == 0){
+                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);   
+                    }
+                    else{
+                        printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                    }
+                }
+            }
+
+            i++;
+            curr = next; //move forward in the list
+        }
+        printf("\n");
+        fprintf(fp, "\n");
         
         time_count++;
         current_cycle++;
     }
+    fclose(fp);
 }
 
 //Reverses max_min
@@ -328,7 +412,7 @@ int is_in_ready_queue(struct task *queue, struct task *node){
 }
 
 //Appends input node to the ready queue and returns the new queue with the new node inserted
-struct task *append_to_ready_queue(struct task *list, struct task *queue, struct task *node){
+struct task *append_to_ready_queue(struct task *queue, struct task *node){
     struct task *rover;
 
     node->next = NULL;
@@ -363,10 +447,8 @@ struct task *sort_return_queue(struct task *queue, int max_min){
         rover = rover->next;
     }
 
-    printf("\nQueue before sorting with max_min of %i: \n", max_min);
     rover = queue;
     while (rover != NULL){
-        printf("Task ID: %i, Service Time: %i\n", rover->task_id, rover->service_time);
         rover = rover->next;
     }
     
@@ -379,7 +461,7 @@ struct task *sort_return_queue(struct task *queue, int max_min){
     //Only sorts head node of list so that it is MIN or MAX of list depending on max_min input
     if (max_min == 0){
 
-        if (queue->next == NULL){
+        if (queue == NULL || queue->next == NULL){
             return queue; //List is sorted because it is only one node
         }
 
@@ -397,7 +479,8 @@ struct task *sort_return_queue(struct task *queue, int max_min){
         max_min = reverse_max_min(max_min);
     }
     else{ //Sort for head = max of queue
-        if (queue->next == NULL){
+        
+        if (queue == NULL || queue->next == NULL){
             return queue; //List is sorted because it is only one node
         }
 
@@ -410,12 +493,11 @@ struct task *sort_return_queue(struct task *queue, int max_min){
             }
             rover = rover->next;
         }
-
         queue = swap_nodes(queue, queue, temp);
         max_min = reverse_max_min(max_min);
     }
     starting_position++; //Move starting position forward by one since head is now sorted correctly
-
+    
     //Knowing the list has more than one node, iterates through list and sorts list correctly (ideally)
     for (int i = starting_position; i < queue_length; i++)
     {
@@ -458,13 +540,10 @@ struct task *sort_return_queue(struct task *queue, int max_min){
 
     }
 
-    printf("\nQueue After Sorting: \n");
     rover = queue;
     while (rover != NULL){
-        printf("Task ID: %i, Service Time: %i\n", rover->task_id, rover->service_time);
         rover = rover->next;
     }
-    printf("\n");
 
     return queue; //Return sorted list
 }
