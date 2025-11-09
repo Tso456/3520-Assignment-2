@@ -65,13 +65,13 @@ int main (int argc, char *argv[]){
     }
 
     struct task *head = read_file_return_list(stdin, i); //Create linked list
-    //struct task *round_robin_list = duplicate_list(head);
+    struct task *round_robin_list = duplicate_list(head);
     struct task *fairmix_list = duplicate_list(head);
 
-    //FILE *fptr = fopen(output_file, "w");
+    FILE *fptr = fopen(output_file, "w");
     double avg_r_time = 0;
     int t_overhead = 0;
-    //roundRobin(round_robin_list, t, o, fptr, &avg_r_time, &t_overhead);
+    roundRobin(round_robin_list, t, o, fptr, &avg_r_time, &t_overhead);
     fairmix(fairmix_list, output_file, t, o);
     
 
@@ -206,7 +206,7 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     fp = fopen(current_output_file, "w");
 
     // Match project/RR header/columns; no other FairMix prints
-    printf("Fairmix scheduling results\n\n");
+    printf("\nFairmix scheduling results\n\n");
     fprintf(fp, "Fairmix scheduling results\n\n");
     printf("%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
     fprintf(fp, "%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
@@ -325,12 +325,15 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                     printed = 1;
                     if (i == 0 && is_task_finished){
                         printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%8d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else if (i == 0){
                         printf("%15d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%15d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else{
                         printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%d-%d, ", curr->task_id, curr->remaining_time);
                     }
                 }
                 i++;
@@ -345,15 +348,19 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                 if (next != NULL){
                     if (printed){
                         printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else if (i == 0 && is_task_finished){
                         printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%8d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else if (i == 0){
-                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);   
+                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%15d-%d, ", curr->task_id, curr->remaining_time);  
                     }
                     else{
                         printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%d-%d, ", curr->task_id, curr->remaining_time);
                     }
                 }
             }
@@ -361,15 +368,19 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
                 if (next != NULL){
                     if (printed){
                         printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else if (i == 0 && is_task_finished){
                         printf("%8d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%8d-%d, ", curr->task_id, curr->remaining_time);
                     }
                     else if (i == 0){
-                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);   
+                        printf("%15d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%15d-%d, ", curr->task_id, curr->remaining_time);   
                     }
                     else{
                         printf("%d-%d, ", curr->task_id, curr->remaining_time);
+                        fprintf(fp, "%d-%d, ", curr->task_id, curr->remaining_time);
                     }
                 }
             }
@@ -383,6 +394,15 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         time_count++;
         current_cycle++;
     }
+
+
+
+
+    printf("\n\n%-5s %-12s %-16s %s\n", "tid", "serv time", "complete time", "wait time");
+    fprintf(fp, "\n\n%-5s %-12s %-16s %s\n", "tid", "serv time", "complete time", "wait time");
+    printf("---------------------------------------------------------------\n");
+    fprintf(fp, "---------------------------------------------------------------\n");
+
     fclose(fp);
 }
 
@@ -621,11 +641,11 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
     int tasks_completed = 0;
 
     printf("Round Robin scheduling results\n\n");
-    fprintf(fp, "Round Robin scheduling results\n\n");
+    if (fp) fprintf(fp, "Round Robin scheduling results\n\n");
     printf("%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
-    fprintf(fp, "%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
+    if (fp) fprintf(fp, "%-5s %-6s %-12s %-12s %s\n", "time", "cpu", "serv time", "remaining", "ready queue");
     printf("---------------------------------------------------------------\n");
-    fprintf(fp, "---------------------------------------------------------------\n");
+    if (fp) fprintf(fp, "---------------------------------------------------------------\n");
 
     while (futureTasks != NULL || newQ != NULL || rrQ != NULL || cpu != NULL) {
         while (futureTasks != NULL && futureTasks->arrival_time == currentTime) {
@@ -667,37 +687,35 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
 
         if (cpu != NULL) {
             printf("%-5d %-6d %-12d ", currentTime, cpu->task_id, cpu->service_time);
-            fprintf(fp, "%-5d %-6d %-12d ", currentTime, cpu->task_id, cpu->service_time);
+            if (fp) fprintf(fp, "%-5d %-6d %-12d ", currentTime, cpu->task_id, cpu->service_time);
             int nextRem = cpu->remaining_time - 1;
             if (nextRem == 0) {
                 printf("%-12s ", "0 (done)");
-                fprintf(fp, "%-12s ", "0 (done)");
+                if (fp) fprintf(fp, "%-12s ", "0 (done)");
             } else {
                 printf("%-12d ", nextRem);
-                fprintf(fp, "%-12d ", nextRem);
+                if (fp) fprintf(fp, "%-12d ", nextRem);
             }
         } else {
             printf("%-5d %-6s %-12s %-12s ", currentTime, "", "", "");
-            fprintf(fp, "%-5d %-6s %-12s %-12s ", currentTime, "", "", "");
+            if (fp) fprintf(fp, "%-5d %-6s %-12s %-12s ", currentTime, "", "", "");
         }
 
         print_two_queues(fp, newQ, rrQ);
         printf("\n");
-        fprintf(fp, "\n");
+        if (fp) fprintf(fp, "\n");
 
         if (cpu != NULL) {
             cpu->remaining_time--;
             sliceRemaining--;
-	    cpu->service_time--;
+            cpu->service_time--;
         }
 
         currentTime++;
     }
 
     printf("---------------------------------------------------------------\n");
-    fprintf(fp, "---------------------------------------------------------------\n");
-    printf("All tasks complete.\n");
-    fprintf(fp, "All tasks complete.\n");
+    if (fp) fprintf(fp, "---------------------------------------------------------------\n");
 
     if (tasks_completed > 0) *avg_resp_time = (double)sum_resp_time / (double)tasks_completed;
     else *avg_resp_time = 0.0;
@@ -726,23 +744,26 @@ struct task* dequeue(struct task **queueHead) {
 
 void print_two_queues(FILE *fp, struct task *q1, struct task *q2) {
     int first = 1;
+
     struct task *cur = q1;
     while (cur != NULL) {
-        if (!first) { printf(", "); fprintf(fp, ", "); }
+        if (!first) { printf(", "); if (fp) fprintf(fp, ", "); }
         printf("%d-%d", cur->task_id, cur->remaining_time);
-        fprintf(fp, "%d-%d", cur->task_id, cur->remaining_time);
+        if (fp) fprintf(fp, "%d-%d", cur->task_id, cur->remaining_time);
         first = 0;
         cur = cur->next;
     }
+
     cur = q2;
     while (cur != NULL) {
-        if (!first) { printf(", "); fprintf(fp, ", "); }
+        if (!first) { printf(", "); if (fp) fprintf(fp, ", "); }
         printf("%d-%d", cur->task_id, cur->remaining_time);
-        fprintf(fp, "%d-%d", cur->task_id, cur->remaining_time);
+        if (fp) fprintf(fp, "%d-%d", cur->task_id, cur->remaining_time);
         first = 0;
         cur = cur->next;
     }
 }
+
 
 void free_list(struct task *list) {
     struct task *current = list;
@@ -753,3 +774,4 @@ void free_list(struct task *list) {
         current = next;
     }
 }
+
