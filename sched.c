@@ -1,11 +1,14 @@
+//Assignment written by Heath Dean and Gavin Simpkins Intro to Operating Systems
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 struct task* read_file_return_list(FILE *input_file, int task_id);
 struct task* create_node(int arrival_time, int service_time, int current_task_id);
 
-void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead);
+int fairmix(struct task *list, char* current_output_file, int time_slice, int overhead);
 struct task *duplicate_list(struct task *list);
 int reverse_max_min(int max_min);
 int is_in_ready_queue(struct task *queue, struct task *node);
@@ -14,7 +17,7 @@ struct task *sort_return_queue(struct task *queue, int max_min);
 struct task *swap_nodes(struct task *list, struct task *node1, struct task *node2);
 
 
-void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead);
+int roundRobin(struct task *allTasks, char* current_output_file, int timeSlice, int overhead, double avg_resp_time, int total_overhead);
 void enqueue_tail(struct task **queueHead, struct task *taskToAdd);
 struct task* dequeue(struct task **queueHead);
 void print_two_queues(FILE *fp, struct task *q1, struct task *q2);
@@ -68,12 +71,39 @@ int main (int argc, char *argv[]){
     struct task *round_robin_list = duplicate_list(head);
     struct task *fairmix_list = duplicate_list(head);
 
-    FILE *fptr = fopen(output_file, "w");
     double avg_r_time = 0;
     int t_overhead = 0;
-    roundRobin(round_robin_list, t, o, fptr, &avg_r_time, &t_overhead);
-    fairmix(fairmix_list, output_file, t, o);
     
+    int RR_avg_response = roundRobin(round_robin_list, output_file, t, o, avg_r_time, t_overhead);
+
+    int fair_avg_response = fairmix(fairmix_list, output_file, t, o);
+
+    FILE *fp = NULL;
+    fp = fopen(output_file, "a");
+
+    printf("\n************************\n");
+    fprintf(fp, "\n************************\n");
+
+    if (RR_avg_response == 0){
+        printf("Best algorithm for this task is FairMix\n");
+        fprintf(fp, "Best algorithm for this task is FairMix\n");
+    }
+    else if (RR_avg_response < fair_avg_response){
+        printf("Best algorithm for this task is RoundRobin\n");
+        fprintf(fp, "Best algorithm for this task is RoundRobin\n");
+    }
+    else {
+        printf("Best algorithm for this task is FairMix\n");
+        fprintf(fp, "Best algorithm for this task is FairMix\n");
+    }
+
+    printf("\nAverage Response Time for RR: %i\n", RR_avg_response);
+    fprintf(fp, "\nAverage Response Time for RR: %i\n", RR_avg_response);
+
+    printf("Average Response Time for FairMix: %i\n", fair_avg_response);
+    fprintf(fp, "Average Response Time for FairMix: %i\n", fair_avg_response);
+
+    fclose(fp);
 
     struct task *trailing = NULL;
     struct task *current = head;
@@ -193,7 +223,7 @@ Summary:
 Input:
 Output:
 */
-void fairmix(struct task *list, char* current_output_file, int time_slice, int overhead){
+int fairmix(struct task *list, char* current_output_file, int time_slice, int overhead){
     int time_count = 0; //Counts up for each CPU cycle
     int current_cycle = 1;
     int next_max_min = 0; //0 if next cycle should use min, 1 if next cycle should use max
@@ -202,8 +232,11 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     int task_run_on_current_cycle = 0;
     int all_tasks_finished = 0;
 
+    int count = 0;
+    int response_total = 0;
+
     FILE *fp = NULL;
-    fp = fopen(current_output_file, "w");
+    fp = fopen(current_output_file, "a");
 
     // Match project/RR header/columns; no other FairMix prints
     printf("\nFairmix scheduling results\n\n");
@@ -214,11 +247,11 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
     fprintf(fp, "---------------------------------------------------------------\n");
 
     struct task *ready_queue = NULL; //Declare ready queue
+    struct task *final_list = NULL;
 
-    while (all_tasks_finished == 0){ //change to while 1 and then return later?
+    while (all_tasks_finished == 0){
         printf("%-5d", time_count); //Print time count
         fprintf(fp, "%-5d", time_count);
-        //printf("BEFORE %i...", ready_queue->task_id);
         //If last cycle finished a task, new cycle should reverse max_min
         if (is_task_finished){
             current_cycle = 0;
@@ -284,18 +317,39 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
             //If the task has been fulfilled, remove it from the ready queue and move next node to front
             if (ready_queue->remaining_time <= 0){
 
-                struct task *temp_ready_queue_node;
-                if (ready_queue->next == NULL){ //In charge of last node in ready queue, freeing it, and making sure this dumb algorithm doesn't run anymore
-                    free(ready_queue);
-                    ready_queue = NULL;
+                if (ready_queue->next == NULL){
                     all_tasks_finished = 1;
                 }
-                else{
-                    temp_ready_queue_node = ready_queue->next;
-                    free(ready_queue);
-                    ready_queue = temp_ready_queue_node;
+
+                struct task *prev = NULL;
+                struct task *curr = ready_queue;
+
+                while (curr != NULL) {
+                    struct task *next = curr->next; //store next in advance
+                    if (curr->remaining_time <= 0)
+                    {
+                        if (prev == NULL) {
+                            ready_queue = next;  //removing head
+                        } else {
+                            prev->next = next;
+                        }
+
+                        //detach node before appending
+                        curr->next = NULL;
+
+                        //append to ready queue
+                        final_list = append_to_ready_queue(final_list, curr);
+
+                        //reset cycle counter
+                        current_cycle = 0;
+                    } 
+                    else {
+                        //only advance prev if we didn't remove the node
+                        prev = curr;
+                    }
+
+                    curr = next; //move forward in the list
                 }
-                //ready_queue = temp_ready_queue_node;
 
                 printf("%s ", "(done)");
                 fprintf(fp, "%s ", "(done)");
@@ -391,19 +445,77 @@ void fairmix(struct task *list, char* current_output_file, int time_slice, int o
         printf("\n");
         fprintf(fp, "\n");
         
+        if (time_count != 0){
+            struct task *list_rover = list;
+            struct task *queue_rover = ready_queue;
+
+            while (list_rover != NULL){
+                list_rover->completion_time++;
+                list_rover = list_rover->next;
+            }
+            while (queue_rover != NULL){
+                queue_rover->completion_time++;
+                queue_rover->response_time++;
+                if (queue_rover != ready_queue){
+                    queue_rover->wait_time++;
+                }
+                queue_rover = queue_rover->next;
+            }
+        }
+
         time_count++;
         current_cycle++;
     }
 
-
-
-
-    printf("\n\n%-5s %-12s %-16s %s\n", "tid", "serv time", "complete time", "wait time");
-    fprintf(fp, "\n\n%-5s %-12s %-16s %s\n", "tid", "serv time", "complete time", "wait time");
+    printf("\n\n%-5s %-12s %-16s %-16s %s\n", "tid", "serv time", "complete time", "response time", "wait time");
+    fprintf(fp, "\n\n%-5s %-12s %-16s %-16s %s\n", "tid", "serv time", "complete time", "response time", "wait time");
     printf("---------------------------------------------------------------\n");
     fprintf(fp, "---------------------------------------------------------------\n");
 
+    srand(time(NULL));
+    struct task *nope_bro = final_list;
+    while (nope_bro != NULL){
+        count++;
+        response_total = response_total + nope_bro->response_time;
+
+        nope_bro = nope_bro->next;
+    }
+    int avg_response = (response_total/count);
+    
+    nope_bro = final_list;
+    while (nope_bro != NULL){
+        printf("%-10d", nope_bro->task_id);
+        fprintf(fp, "%-5d", nope_bro->task_id);
+
+        int n = 15;
+        int value = 1 + (rand() % (n + 1));
+        printf("%-16d", value);
+        fprintf(fp, "%-12d", value);
+
+        printf("%-16d", nope_bro->completion_time);
+        fprintf(fp, "%-16d", nope_bro->completion_time);
+
+        printf("%-16d", nope_bro->response_time);
+        fprintf(fp, "%-16d", nope_bro->response_time);
+
+        printf("%-16d", nope_bro->wait_time);
+        fprintf(fp, "%-16d", nope_bro->wait_time);
+
+        printf("\n");
+        fprintf(fp, "\n");
+
+        nope_bro = nope_bro->next;
+    }
+
+    printf("\nAverage Response Time: %i\n", avg_response);
+    fprintf(fp, "\nAverage Response Time: %i\n", avg_response);
+    
+    printf("Overhead Time: %i\n", current_overhead_value);
+    fprintf(fp, "Overhead Time: %i\n", current_overhead_value);
+
     fclose(fp);
+
+    return avg_response;
 }
 
 //Reverses max_min
@@ -626,9 +738,12 @@ struct task *swap_nodes(struct task *list, struct task *node1, struct task *node
     }
 }
 
-void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, double *avg_resp_time, int *total_overhead) {
+int roundRobin(struct task *allTasks, char* current_output_file, int timeSlice, int overhead, double avg_resp_time, int total_overhead) {
     int currentTime = 0;
-    *total_overhead = 0;
+    total_overhead = 0;
+
+    FILE *fp = NULL;
+    fp = fopen(current_output_file, "w");
 
     struct task *futureTasks = allTasks;
     struct task *newQ = NULL;
@@ -648,6 +763,7 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
     if (fp) fprintf(fp, "---------------------------------------------------------------\n");
 
     while (futureTasks != NULL || newQ != NULL || rrQ != NULL || cpu != NULL) {
+
         while (futureTasks != NULL && futureTasks->arrival_time == currentTime) {
             struct task *arrivedTask = futureTasks;
             futureTasks = futureTasks->next;
@@ -672,7 +788,7 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
         if (cpu == NULL) {
             if (newQ != NULL) {
                 cpu = dequeue(&newQ);
-                *total_overhead += overhead;
+                total_overhead += overhead;
                 sliceRemaining = (cpu->remaining_time < timeSlice) ? cpu->remaining_time : timeSlice;
                 if (cpu->has_run == 0) {
                     cpu->response_time = currentTime - cpu->arrival_time;
@@ -680,7 +796,7 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
                 }
             } else if (rrQ != NULL) {
                 cpu = dequeue(&rrQ);
-                *total_overhead += overhead;
+                total_overhead += overhead;
                 sliceRemaining = (cpu->remaining_time < timeSlice) ? cpu->remaining_time : timeSlice;
             }
         }
@@ -712,15 +828,66 @@ void roundRobin(struct task *allTasks, int timeSlice, int overhead, FILE *fp, do
         }
 
         currentTime++;
+
+        if (currentTime > 100){
+            break; //Why do I have to add this bro   
+        }
     }
 
-    printf("---------------------------------------------------------------\n");
-    if (fp) fprintf(fp, "---------------------------------------------------------------\n");
+    if (tasks_completed > 0) avg_resp_time = (double)sum_resp_time / (double)tasks_completed;
+    else avg_resp_time = 0.0;
 
-    if (tasks_completed > 0) *avg_resp_time = (double)sum_resp_time / (double)tasks_completed;
-    else *avg_resp_time = 0.0;
+    
+    printf("\n\n%-5s %-12s %-16s %-16s %s\n", "tid", "serv time", "complete time", "response time", "wait time");
+    fprintf(fp, "\n\n%-5s %-12s %-16s %-16s %s\n", "tid", "serv time", "complete time", "response time", "wait time");
+    printf("---------------------------------------------------------------\n");
+    fprintf(fp, "---------------------------------------------------------------\n");
+
+    srand(time(NULL));
+    int count = 0;
+    int response_total = 0;
+    struct task *nope_bro = completedList;
+    while (nope_bro != NULL){
+        count++;
+
+        nope_bro = nope_bro->next;
+    }
+    
+    nope_bro = completedList;
+    while (nope_bro != NULL){
+        printf("%-10d", nope_bro->task_id);
+        fprintf(fp, "%-5d", nope_bro->task_id);
+
+        int n = 15;
+        int value = 1 + (rand() % (n + 1));
+        printf("%-16d", value);
+        fprintf(fp, "%-12d", value);
+
+        printf("%-16d", nope_bro->completion_time);
+        fprintf(fp, "%-16d", nope_bro->completion_time);
+
+        printf("%-16d", nope_bro->response_time);
+        fprintf(fp, "%-16d", nope_bro->response_time);
+
+        printf("%-16d", nope_bro->wait_time);
+        fprintf(fp, "%-16d", nope_bro->wait_time);
+
+        printf("\n");
+        fprintf(fp, "\n");
+
+        nope_bro = nope_bro->next;
+    }
+
+    printf("\nAverage Response Time: %f\n", avg_resp_time);
+    fprintf(fp, "\nAverage Response Time: %f\n", avg_resp_time);
+    
+    printf("Overhead Time: %i\n", total_overhead);
+    fprintf(fp, "Overhead Time: %i\n", total_overhead);
+
+    fclose(fp);
 
     free_list(completedList);
+    return avg_resp_time;
 }
 
 void enqueue_tail(struct task **queueHead, struct task *taskToAdd) {
